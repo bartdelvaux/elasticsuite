@@ -69,6 +69,14 @@ class ClientConfiguration implements ClientConfigurationInterface
     {
         return (int) $this->getElasticsearchClientConfigParam('connection_timeout');
     }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function getTimeout()
+    {
+        return (int) $this->getElasticsearchClientConfigParam('timeout');
+    }
 
     /**
      * {@inheritdoc}
