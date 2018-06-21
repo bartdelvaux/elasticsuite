@@ -34,6 +34,11 @@ class Client implements ClientInterface
     private $esClient;
 
     /**
+     * @var array
+     */
+    protected $timeoutParams;
+
+    /**
      * Constructor.
      *
      * @param ClientConfigurationInterface $clientConfiguration Client configuration factory.
@@ -42,6 +47,13 @@ class Client implements ClientInterface
     public function __construct(ClientConfigurationInterface $clientConfiguration, ClientBuilder $clientBuilder)
     {
         $this->esClient = $clientBuilder->build($clientConfiguration->getOptions());
+
+        $this->timeoutParams = [
+            'client' => [
+                'timeout' => $clientConfiguration->getTimeout(),
+                'server_timeout' => $clientConfiguration->getConnectionTimeout(),
+            ],
+        ];
     }
 
     /**
@@ -49,7 +61,7 @@ class Client implements ClientInterface
      */
     public function info()
     {
-        return $this->esClient->info();
+        return $this->esClient->info($this->prepareParams());
     }
 
     /**
@@ -57,7 +69,7 @@ class Client implements ClientInterface
      */
     public function ping()
     {
-        return $this->esClient->ping();
+        return $this->esClient->ping($this->prepareParams());
     }
 
     /**
@@ -65,7 +77,7 @@ class Client implements ClientInterface
      */
     public function createIndex($indexName, $indexSettings)
     {
-        $this->esClient->indices()->create(['index' => $indexName, 'body' => $indexSettings]);
+        $this->esClient->indices()->create($this->prepareParams(['index' => $indexName, 'body' => $indexSettings]));
     }
 
     /**
@@ -73,7 +85,7 @@ class Client implements ClientInterface
      */
     public function deleteIndex($indexName)
     {
-        $this->esClient->indices()->delete(['index' => $indexName]);
+        $this->esClient->indices()->delete($this->prepareParams(['index' => $indexName]));
     }
 
     /**
@@ -81,7 +93,7 @@ class Client implements ClientInterface
      */
     public function indexExists($indexName)
     {
-        return $this->esClient->indices()->exists(['index' => $indexName]);
+        return $this->esClient->indices()->exists($this->prepareParams(['index' => $indexName]));
     }
 
     /**
@@ -89,7 +101,7 @@ class Client implements ClientInterface
      */
     public function putIndexSettings($indexName, $indexSettings)
     {
-        $this->esClient->indices()->putSettings(['index' => $indexName, 'body' => $indexSettings]);
+        $this->esClient->indices()->putSettings($this->prepareParams(['index' => $indexName, 'body' => $indexSettings]));
     }
 
     /**
@@ -97,7 +109,7 @@ class Client implements ClientInterface
      */
     public function putMapping($indexName, $type, $mapping)
     {
-        $this->esClient->indices()->putMapping(['index' => $indexName, 'type'  => $type, 'body'  => [$type => $mapping]]);
+        $this->esClient->indices()->putMapping($this->prepareParams(['index' => $indexName, 'type'  => $type, 'body'  => [$type => $mapping]]));
     }
 
     /**
@@ -105,7 +117,7 @@ class Client implements ClientInterface
      */
     public function forceMerge($indexName)
     {
-        $this->esClient->indices()->forceMerge(['index' => $indexName]);
+        $this->esClient->indices()->forceMerge($this->prepareParams(['index' => $indexName]));
     }
 
     /**
@@ -113,7 +125,7 @@ class Client implements ClientInterface
      */
     public function refreshIndex($indexName)
     {
-        $this->esClient->indices()->refresh(['index' => $indexName]);
+        $this->esClient->indices()->refresh($this->prepareParams(['index' => $indexName]));
     }
 
     /**
@@ -123,7 +135,7 @@ class Client implements ClientInterface
     {
         $indices = [];
         try {
-            $indices = $this->esClient->indices()->getMapping(['index' => $indexAlias]);
+            $indices = $this->esClient->indices()->getMapping($this->prepareParams(['index' => $indexAlias]));
         } catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
             ;
         }
@@ -136,7 +148,7 @@ class Client implements ClientInterface
      */
     public function updateAliases($aliasActions)
     {
-        $this->esClient->indices()->updateAliases(['body' => ['actions' => $aliasActions]]);
+        $this->esClient->indices()->updateAliases($this->prepareParams(['body' => ['actions' => $aliasActions]]));
     }
 
     /**
@@ -144,7 +156,7 @@ class Client implements ClientInterface
      */
     public function bulk($bulkParams)
     {
-        return $this->esClient->bulk($bulkParams);
+        return $this->esClient->bulk($this->prepareParams($bulkParams));
     }
 
     /**
@@ -152,7 +164,7 @@ class Client implements ClientInterface
      */
     public function search($params)
     {
-        return $this->esClient->search($params);
+        return $this->esClient->search($this->prepareParams($params));
     }
 
     /**
@@ -160,7 +172,7 @@ class Client implements ClientInterface
      */
     public function analyze($params)
     {
-        return $this->esClient->indices()->analyze($params);
+        return $this->esClient->indices()->analyze($this->prepareParams($params));
     }
 
     /**
@@ -168,7 +180,7 @@ class Client implements ClientInterface
      */
     public function indexStats($indexName)
     {
-        return $this->esClient->indices()->stats(['index' => $indexName]);
+        return $this->esClient->indices()->stats($this->prepareParams(['index' => $indexName]));
     }
 
     /**
@@ -176,6 +188,18 @@ class Client implements ClientInterface
      */
     public function termvectors($params)
     {
-        return $this->esClient->termvectors($params);
+        return $this->esClient->termvectors($this->prepareParams($params));
+    }
+
+    /**
+     * @param array $params
+     * @return array
+     */
+    protected function prepareParams($params = [])
+    {
+        return array_merge(
+            $params,
+            $this->timeoutParams
+        );
     }
 }
