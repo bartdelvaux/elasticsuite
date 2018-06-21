@@ -45,6 +45,13 @@ interface ClientConfigurationInterface
     public function getConnectionTimeout();
 
     /**
+     * Default timeout for the ES client.
+     *
+     * @return integer
+     */
+    public function getTimeout();
+
+    /**
      * Indicates the protocol scheme used (http/https).
      *
      * @return string
